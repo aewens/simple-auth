@@ -27,4 +27,4 @@ class User(db.Model):
     )
 
     def __str__(self):
-return "<User %s>" % self.name
+        return "<User %s>" % self.name
