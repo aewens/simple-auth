@@ -1,4 +1,4 @@
-# flask-boilerplate
+# simple-auth
 
 Because the quickest thing to stop side projects is writing boilerplate code
 
