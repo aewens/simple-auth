@@ -1,6 +1,7 @@
 # Packages
-from sys import argv, exit
-from os.path import realpath, dirname
+from sys import argv
+from os.path import isfile, realpath, dirname
+from helper import sha256
 from flask import Flask
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
@@ -10,10 +11,10 @@ from flask_sqlalchemy import SQLAlchemy
 from config import Config
 
 path = dirname(realpath(__file__))
-secret = "%s/app/app.secret" % path
+secret = "%s/app.secret" % path
 if not isfile(secret):
-    print("Error: Missing file '%s'" % secret)
-    exit(1)
+    with open(secret, "w") as f:
+        f.write(sha256())
 
 app = Flask(__name__, static_url_path="/assets")
 
