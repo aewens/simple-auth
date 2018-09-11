@@ -20,8 +20,17 @@ def new_user():
 
 @app.route("/new_token", methods=["POST"])
 def new_token():
-    uuid = request.form.get("user")
-    return send(0, sha256())
+    uuid = request.form.get("uuid")
+    user = models.User.query.filter_by(uuid=uuid).one_or_none()
+
+    if user is None:
+        return send(1, "User does not exist")
+
+    token = models.Token(value=sha256(), user=user)
+    db.session.add(token)
+    db.session.commit()
+
+    return send(0, token.value)
 
 @app.route("/auth", methods=["POST"])
 def auth():
@@ -46,13 +55,37 @@ def auth():
             return send(3, "Token is expired")
 
     uuid = token.user.uuid
-    signature = sign(uuid, app.secret_key)
+    permissions = token.permissions
+    info = "%s;%s" % (uuid, permissions)
+    signature = sign(info, app.secret_key)
 
     return send(0, ",".join([
-        uuid,
+        info,
         signature
     ]))
 
 @app.route("/verify", methods=["POST"])
 def verify():
-    return send(0, "")
+    voucher = request.form.get("voucher")
+
+    if "," not in voucher:
+        return send(1, "Invalid format for voucher")
+
+    info, signature = voucher.split(",")
+    signed = sign(info, app.secret_key)
+    if signed != signature:
+        return send(2, "Signature doesn't match content")
+
+    if ";" not in info:
+        return send(3, "Invalid format for voucher information")
+
+    uuid, permissions = info.split(";")
+    user = models.User.query.filter_by(uuid=uuid).one_or_none()
+    
+    if user is None:
+        return send(4, "User doesn't exist")
+
+    if int(permissions) < 0:
+        return send(5, "User lacks valid permissions")
+
+    return send(0, "Verified")
