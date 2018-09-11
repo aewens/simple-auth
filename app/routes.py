@@ -56,8 +56,13 @@ def auth():
 
     uuid = token.user.uuid
     permissions = token.permissions
-    info = "%s;%s" % (uuid, permissions)
-    signature = sign(info, app.secret_key)
+    expires = token.expires_at
+
+    if expires > 0:
+        expires = expires + timestamp()
+
+    info = ";".join([uuid, str(permissions), str(expires)])
+    signature = sign(info, app.secret_key).replace("+", "!")
 
     return send(0, ",".join([
         info,
@@ -67,19 +72,22 @@ def auth():
 @app.route("/verify", methods=["POST"])
 def verify():
     voucher = request.form.get("voucher")
+    print(voucher)
 
     if "," not in voucher:
         return send(1, "Invalid format for voucher")
 
     info, signature = voucher.split(",")
+    signature = signature.replace("!", "+")
     signed = sign(info, app.secret_key)
     if signed != signature:
+        print(signed, signature, info)
         return send(2, "Signature doesn't match content")
 
     if ";" not in info:
         return send(3, "Invalid format for voucher information")
 
-    uuid, permissions = info.split(";")
+    uuid, permissions, expires = info.split(";")
     user = models.User.query.filter_by(uuid=uuid).one_or_none()
     
     if user is None:
@@ -87,5 +95,9 @@ def verify():
 
     if int(permissions) < 0:
         return send(5, "User lacks valid permissions")
+
+    exp = int(expires)
+    if exp > 0 and timestamp() > exp:
+        return send(6, "Voucher has expired")
 
     return send(0, "Verified")
