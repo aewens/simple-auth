@@ -14,7 +14,8 @@ itsdangerous==0.24
 Jinja2==2.10
 Mako==1.0.7
 MarkupSafe==1.0
-marshmallow==2.15.0
+#marshmallow==2.15.0
+marshmallow ~> 2.15.1
 marshmallow-sqlalchemy==0.13.2
 Pillow==5.0.0
 #pycryptodome==3.5.1
